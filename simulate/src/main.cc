@@ -35,6 +35,7 @@
 #include "unitree_sdk2_bridge.h"
 #include "sensor_publisher.h"
 #include "dex3_handler.h"
+#include "inspire_handler.h"
 #include "startup_pose.h"
 #include "grasp_weld.h"
 #include "param.h"
@@ -361,6 +362,7 @@ namespace
           // outside sim.mtx by design, so nothing lock-based can make this safe.
           grove_g1::StopSensorPublisher();
           grove_g1::StopDex3Handler();
+          grove_g1::StopInspireHandler();
           grove_g1::StopGraspWeld();
 
           mj_deleteData(d);
@@ -400,6 +402,7 @@ namespace
           // outside sim.mtx by design, so nothing lock-based can make this safe.
           grove_g1::StopSensorPublisher();
           grove_g1::StopDex3Handler();
+          grove_g1::StopInspireHandler();
           grove_g1::StopGraspWeld();
 
           mj_deleteData(d);
@@ -724,6 +727,10 @@ int main(int argc, char **argv)
   // in a scene that declares no grasp_* welds. Needs sim->mtx rather than DDS, so it starts
   // here rather than in the bridge thread.
   grove_g1::StartGraspWeld(&m, &d, &sim->mtx);
+
+  // grove-g1: the Inspire hands' RS485 lines, as pseudo-terminals. A no-op on models without
+  // the Inspire joints or without GROVE_G1_INSPIRE_PORTS.
+  grove_g1::StartInspireHandler(&m, &d);
 
   // start physics thread
   std::thread physicsthreadhandle(&PhysicsThread, sim.get(), param::config.robot_scene.c_str());
