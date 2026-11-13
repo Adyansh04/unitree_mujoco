@@ -24,6 +24,8 @@ one.
 | Refuse cameras the relay cannot use | A camera name too long for the frame header is disabled loudly, and an MJCF camera with no resolution renders at 848x480 rather than MuJoCo's 1x1. |
 | Give the G1 Inspire RH56DFQ hands | `g1_29dof_inspire.xml`, the G1 with Unitree's model of the Inspire DFQ hands instead of the Dex3, and its meshes. Generated from grove-g1's URDF by its `g1_bringup/tools/inspire_hand_mjcf.py`; rerun that rather than editing the file. |
 | Answer the Inspire hands' RS485 lines | `inspire_handler.cc` serves each hand's serial line on a pseudo-terminal, in the hand's own frame and in Modbus RTU, and moves the fingers as the hand's firmware does. |
+| Count a capsule's end caps in its height | A standing capsule prop is reported at its full height, not its straight part's. |
+| Monitor what the hands touch | `contact_monitor.cc`, called after every physics step: each hand contact's peak force by what it met, and how centred each grasp sits, to stderr above 5 N and to `GROVE_G1_CONTACT_LOG`. Changes nothing in the simulation. |
 
 ## Rules
 

@@ -36,6 +36,7 @@
 #include "sensor_publisher.h"
 #include "dex3_handler.h"
 #include "inspire_handler.h"
+#include "contact_monitor.h"
 #include "startup_pose.h"
 #include "grasp_weld.h"
 #include "param.h"
@@ -488,6 +489,7 @@ namespace
 
               // run single step, let next iteration deal with timing
               mj_step(m, d);
+              grove_g1::MonitorContacts(m, d);
               stepped = true;
             }
 
@@ -529,6 +531,7 @@ namespace
 
                 // call mj_step
                 mj_step(m, d);
+                grove_g1::MonitorContacts(m, d);
                 stepped = true;
 
                 // break if reset
