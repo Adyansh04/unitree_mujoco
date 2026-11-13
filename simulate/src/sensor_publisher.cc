@@ -216,9 +216,13 @@ void bodyExtents(const mjModel* m, int body, double out[3])
                 half[0] = half[1] = half[2] = size[0];
                 break;
             case mjGEOM_CYLINDER:
-            case mjGEOM_CAPSULE:
                 half[0] = half[1] = size[0];
                 half[2] = size[1];
+                break;
+            case mjGEOM_CAPSULE:
+                // The half-length is the straight part's; each end cap adds a radius.
+                half[0] = half[1] = size[0];
+                half[2] = size[1] + size[0];
                 break;
             default:
                 continue;
