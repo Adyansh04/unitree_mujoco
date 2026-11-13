@@ -51,6 +51,9 @@ constexpr double kKd = 0.05;  // N m s/rad
 constexpr double kHoldMargin = 2.0;
 // s at rated force before a stalled actuator latches locked rotor, as the real one does.
 constexpr double kLockAfterS = 2.0;
+// rad/s. Slower than this a closing digit counts as blocked, so its force can stop it: one still
+// travelling is only overcoming its own drag.
+constexpr double kBlockedRadS = 0.5;
 
 constexpr int    kTickHz          = 1000;
 constexpr double kBaud            = 115200.0;
@@ -406,17 +409,21 @@ void serve(Hand& hand)
     }
 }
 
-void drive(mjData* data, Hand& hand, double dt)
+void drive(const mjModel* model, mjData* data, Hand& hand, double dt)
 {
     for (std::size_t i = 0; i < kActuators; ++i)
     {
-        Actuator&    a          = hand.act[i];
-        const double q          = data->qpos[a.qpos_adr];
-        const double dq         = data->qvel[a.dof_adr];
-        const double angle      = std::clamp(angleOf(i, q), 0.0, 1000.0);
-        const double closing    = kClosedRad[i] > kOpenRad[i] ? 1.0 : -1.0;
-        const double tau_rated  = kRatedForceG[i] * kNewtonsPerGram * kLeverArmM[i];
-        const double pressing_g = closing * a.tau / (kNewtonsPerGram * kLeverArmM[i]);
+        Actuator&    a         = hand.act[i];
+        const double q         = data->qpos[a.qpos_adr];
+        const double dq        = data->qvel[a.dof_adr];
+        const double angle     = std::clamp(angleOf(i, q), 0.0, 1000.0);
+        const double closing   = kClosedRad[i] > kOpenRad[i] ? 1.0 : -1.0;
+        const double tau_rated = kRatedForceG[i] * kNewtonsPerGram * kLeverArmM[i];
+        // The force sensor feels what the digit presses on, not the joint's own damping and
+        // friction, which the model has in place of the screw's drag.
+        const double drag = (model->dof_damping[a.dof_adr] * dq) +
+                            (model->dof_frictionloss[a.dof_adr] * ((dq > 0.0) - (dq < 0.0)));
+        const double pressing_g = closing * (a.tau - drag) / (kNewtonsPerGram * kLeverArmM[i]);
 
         // A new target releases a force stop; -1 leaves the current one.
         const int written = word(hand, kAngleSet + 2 * i);
@@ -426,7 +433,7 @@ void drive(mjData* data, Hand& hand, double dt)
             a.force_stopped = false;
         }
         const bool closing_now = a.target < a.command;
-        if (!a.locked && !a.force_stopped && closing_now &&
+        if (!a.locked && !a.force_stopped && closing_now && std::abs(dq) < kBlockedRadS &&
             pressing_g >= static_cast<double>(word(hand, kForceSet + 2 * i)))
         {
             // Stops where the finger is: the screw holds there, and the object stays pressed.
@@ -537,7 +544,7 @@ void run(mjModel** model, mjData** data)
             for (auto& hand : s.hands)
             {
                 serve(hand);
-                drive(d, hand, 1.0 / kTickHz);
+                drive(m, d, hand, 1.0 / kTickHz);
             }
         }
         next += period;
