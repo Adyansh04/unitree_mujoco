@@ -433,12 +433,15 @@ void drive(const mjModel* model, mjData* data, Hand& hand, double dt)
             a.force_stopped = false;
         }
         const bool closing_now = a.target < a.command;
+        const double force_set_g = word(hand, kForceSet + 2 * i);
         if (!a.locked && !a.force_stopped && closing_now && std::abs(dq) < kBlockedRadS &&
-            pressing_g >= static_cast<double>(word(hand, kForceSet + 2 * i)))
+            pressing_g >= force_set_g)
         {
-            // Stops where the finger is: the screw holds there, and the object stays pressed.
-            a.force_stopped = true;
-            a.command       = angle;
+            // Stops where the finger is: the screw holds there, so the object stays pressed with
+            // the force it was stopped at, which the loop keeps by aiming that far into it.
+            const double preload_rad = force_set_g * kNewtonsPerGram * kLeverArmM[i] / kKp;
+            a.force_stopped          = true;
+            a.command = angle - (preload_rad * 1000.0 / std::abs(kOpenRad[i] - kClosedRad[i]));
         }
         if (!a.locked && !a.force_stopped)
         {
