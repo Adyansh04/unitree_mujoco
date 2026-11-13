@@ -5,8 +5,9 @@
 // strike the table: SIMULATION ONLY, it changes nothing in the simulation.
 //
 // A hand is everything from each wrist_roll_link out, so it covers the Dex3 and the Inspire hands
-// alike. Each contact a hand makes is classed by what it meets: the environment (the world body
-// and every body without a free joint, such as tables), a prop (a free body), or the robot itself.
+// alike. Each contact a hand makes outside itself is classed by what it meets: the environment
+// (the world body and every body without a free joint, such as tables), a prop (a free body), or
+// the robot itself, the other hand included.
 //
 // Every step's contact forces are folded into episodes, one per hand link and the body it touches,
 // closed once they have been apart for 50 ms. An episode against the environment or the robot that

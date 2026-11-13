@@ -274,6 +274,12 @@ void MonitorContacts(const mjModel* model, const mjData* data)
             {
                 continue;
             }
+            // Within one hand, such as wrist links rubbing or digits pressing each other, nothing
+            // outside the hand is struck.
+            if (s.geoms[other].kind == Kind::kHand && s.geoms[other].side == s.geoms[mine].side)
+            {
+                continue;
+            }
             const Kind other_kind =
                 s.geoms[other].kind == Kind::kHand ? Kind::kRobot : s.geoms[other].kind;
             mjtNum force[6];
