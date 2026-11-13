@@ -25,7 +25,7 @@ one.
 | Give the G1 Inspire RH56DFQ hands | `g1_29dof_inspire.xml`, the G1 with Unitree's model of the Inspire DFQ hands instead of the Dex3, and its meshes. Generated from grove-g1's URDF by its `g1_bringup/tools/inspire_hand_mjcf.py`; rerun that rather than editing the file. |
 | Answer the Inspire hands' RS485 lines | `inspire_handler.cc` serves each hand's serial line on a pseudo-terminal, in the hand's own frame and in Modbus RTU, and moves the fingers as the hand's firmware does. |
 | Count a capsule's end caps in its height | A standing capsule prop is reported at its full height, not its straight part's. |
-| Monitor what the hands touch | `contact_monitor.cc`, called after every physics step: each hand contact's peak force by what it met, and how centred each grasp sits, to stderr above 5 N and to `GROVE_G1_CONTACT_LOG`. Changes nothing in the simulation. |
+| Monitor what the hands touch | `contact_monitor.cc`, called after every physics step: each contact a hand makes outside itself, its peak force by what it met with wall-clock stamps, and how centred each grasp sits, to stderr above 5 N and to `GROVE_G1_CONTACT_LOG`. Changes nothing in the simulation. |
 
 ## Rules
 
@@ -47,9 +47,10 @@ actuated joints and six coupled ones, which follow through joint equalities as t
 `inspire_handler.cc` links a pseudo-terminal per hand at the paths `GROVE_G1_INSPIRE_PORTS` names
 (`left=<path>,right=<path>`) and answers there as the hand does on RS485, so grove-g1's driver
 runs unchanged. Each actuator moves toward its `ANGLE_SET` at its `SPEED_SET`, stops closing once
-its finger presses at `FORCE_SET`, and holds where it stopped, as the lead screws do; one pushing
-at its rated force for 2 s latches a locked-rotor error until `CLEAR_ERROR`. Replies are delayed by
-the time the line would take at 115200 baud. The angle mapping mirrors grove-g1's
+its blocked finger presses at `FORCE_SET` (its own drag does not count, as the hand's force sensor
+does not feel it), and holds there still pressing with that force, as the lead screws do; one
+pushing at its rated force for 2 s latches a locked-rotor error until `CLEAR_ERROR`. Replies are
+delayed by the time the line would take at 115200 baud. The angle mapping mirrors grove-g1's
 `inspire_params.yaml`, and grove-g1's `test_inspire_sim` holds the two equal.
 
 ## The contact firewall
