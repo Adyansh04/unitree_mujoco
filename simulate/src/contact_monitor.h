@@ -11,7 +11,8 @@
 // Every step's contact forces are folded into episodes, one per hand link and the body it touches,
 // closed once they have been apart for 50 ms. An episode against the environment or the robot that
 // peaked above 5 N, where the DFQ finger is rated 4 N, is printed to stderr. With
-// GROVE_G1_CONTACT_LOG naming a file, each episode is appended there as a JSON line, and so is
+// GROVE_G1_CONTACT_LOG naming a file, each episode is appended there as a JSON line, with the
+// wall-clock time of its start and its peak to line it up with the stack's logs, and so is
 // each grasp: the first step a hand's thumb and another digit both touch a prop, with how far the
 // centroid of the hand's contacts sits from the prop's centre.
 //

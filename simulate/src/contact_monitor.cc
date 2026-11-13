@@ -1,6 +1,7 @@
 #include "contact_monitor.h"
 
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -64,6 +65,9 @@ struct Episode
     double t0{ 0.0 };
     double last{ 0.0 };
     double peak_n{ 0.0 };
+    // Wall-clock seconds at its start and at its peak, to line it up with the stack's own logs.
+    double wall0{ 0.0 };
+    double wall_peak{ 0.0 };
     int    side{ -1 };
     Kind   other_kind{ Kind::kOther };
 };
@@ -91,6 +95,12 @@ State& state()
     // Leaked on purpose, as in dex3_handler: the physics thread ends in exit(0).
     static State* s = new State();
     return *s;
+}
+
+double wallNow()
+{
+    return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch())
+        .count();
 }
 
 bool inSubtree(const mjModel* m, int body, int root)
@@ -225,9 +235,10 @@ void closeEpisode(const mjModel* m, State& s, const std::pair<int, int>& key, co
         std::fprintf(s.log,
                      "{\"event\":\"contact\",\"t0\":%.4f,\"t1\":%.4f,\"side\":\"%s\","
                      "\"link\":\"%s\",\"digit\":\"%s\",\"other\":\"%s\",\"other_kind\":\"%s\","
-                     "\"peak_n\":%.3f}\n",
+                     "\"peak_n\":%.3f,\"wall0\":%.3f,\"wall_peak\":%.3f}\n",
                      e.t0, e.last, side, bodyName(m, key.first), digitOf(m, key.first).c_str(),
-                     bodyName(m, key.second), kindName(e.other_kind), e.peak_n);
+                     bodyName(m, key.second), kindName(e.other_kind), e.peak_n, e.wall0,
+                     e.wall_peak);
         std::fflush(s.log);
     }
 }
@@ -290,11 +301,16 @@ void MonitorContacts(const mjModel* model, const mjData* data)
             if (episode.side < 0)
             {
                 episode.t0         = now;
+                episode.wall0      = wallNow();
                 episode.side       = side;
                 episode.other_kind = other_kind;
             }
-            episode.last   = now;
-            episode.peak_n = std::max(episode.peak_n, normal_n);
+            episode.last = now;
+            if (normal_n > episode.peak_n)
+            {
+                episode.peak_n    = normal_n;
+                episode.wall_peak = wallNow();
+            }
         }
     }
 
@@ -347,10 +363,10 @@ void MonitorContacts(const mjModel* model, const mjData* data)
         std::fprintf(s.log,
                      "{\"event\":\"grasp\",\"t\":%.4f,\"side\":\"%s\",\"object\":\"%s\","
                      "\"digits\":[%s],\"contacts\":%d,\"centroid_offset_mm\":[%.1f,%.1f,%.1f],"
-                     "\"offset_mm\":%.1f}\n",
+                     "\"offset_mm\":%.1f,\"wall\":%.3f}\n",
                      now, key.first == 0 ? "left" : "right", bodyName(model, key.second),
                      digits.c_str(), touch.count, 1000.0 * local[0], 1000.0 * local[1],
-                     1000.0 * local[2], 1000.0 * mju_norm3(world));
+                     1000.0 * local[2], 1000.0 * mju_norm3(world), wallNow());
         std::fflush(s.log);
     }
 }
